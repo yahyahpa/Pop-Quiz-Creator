@@ -1,0 +1,171 @@
+#Jlong
+
+import os
+#importing re makes spliting a lot easier
+import re
+import random
+
+def check_directory():
+    #Contents of directory
+    contents = os.listdir()
+    #Before directory is checked for .txt file 
+    txt_exist = False
+    try:
+        for i in contents:
+            #Make i contents all lower case before checking for .txt in term
+            if i.lower().find('.txt') !=-1:
+                txt_exist = True
+        #if no .txt files are found raise error
+        if txt_exist == False:
+            raise FileNotFoundError ('No test files in directory.')
+    #Print Error and Quit
+    except FileNotFoundError as exception:
+        print(exception)
+        quit()
+
+#Generates a option menu containing quiz file
+def vocab_quiz_list():
+    contents = os.listdir()
+    #vocab quiz dictionary
+    global vocab_qdic
+    vocab_qdic={}
+    key_num = 1
+    #for each file that ends with .txt
+    for i in contents:
+        if i.lower().find('.txt') !=-1:
+            #add it to dictionary with incremental key
+            vocab_qdic[key_num]= i
+            key_num += 1
+    print('Vocabulary Program')        
+    print('Select a Vocab Quiz File(1-%d)'%(len(vocab_qdic)))
+    #print an option list
+    for key,value in vocab_qdic.items():
+        print('   %d. %s'%(key,value))
+
+    print()
+    print('Q. Quit Program\n')
+    quiz_selection()
+    
+#choose which file to be quized over
+def quiz_selection():
+    global vocab_qdic
+    global selection
+    try:
+        selection = input('Enter a #(1-%d) or Q to Quit\n'%(len(vocab_qdic)))
+        print()
+        if selection == 'Q' or selection == 'q':
+            quit()
+        selection = int(selection)
+        vocab_qdic[selection]
+    except:
+        quiz_selection()
+        return
+    open_file()
+
+    
+def open_file():
+    global selection
+    global vocab_qdic
+    #english to spanish dictionary
+    global eng_span_dic
+    #lst for random generator english words only
+    global vocab_gen_lst
+    eng_span_dic = {}
+    vocab_gen_lst = []
+    with open(vocab_qdic[selection], 'r') as quiz_file:
+        #make each line of the file into lst
+        lines = quiz_file.readlines()
+        #split the items of the lst into tokens where index 0 is always the english
+        for i in lines:
+            tokens = re.split('[:,]',i)
+            vocab_gen_lst.append(tokens[0])
+            for k in tokens[1:]:
+                k = k.replace('\n','')
+                try:
+                    #if key is already in dictionary append synomnym spanish word
+                    eng_span_dic[tokens[0]].append(k)
+                except KeyError:
+                    #if key not in dictionary add it along with spanish word as value
+                    eng_span_dic[tokens[0]]= [k]
+    quiz_length()
+    
+#Asks user for desired quiz length                    
+def quiz_length():
+    global quiz_len
+    try:
+        quiz_len = int(input('Input how many words you would like to be quized on (# must be greater than 0 and less than or equal to 10)\n'))
+        if quiz_len <= 0:
+            raise ValueError
+        if quiz_len >10:
+            raise ValueError
+    except:
+        print()
+        quiz_length()
+    generate_quiz()
+    
+#Generates a random quiz of desire length        
+def generate_quiz():
+    global quiz_len
+    #lst for random generator english words only
+    global vocab_gen_lst
+    global eng_span_dic
+    global correct_count
+    correct_count = 0
+    #quiz words is a lst of random numbers between 0 and 9
+    quiz_words = random.sample(range(0,10),quiz_len)
+    print()
+    question_num = 1
+    for i in quiz_words:
+        #prompt for guess
+        guess = input('#%d. Enter a valid spanish phrase for %s\n'% (question_num,vocab_gen_lst[i]))
+        question_num +=1
+        correct = False
+        #compare guess to all values of english word
+        #if key has multiple values use this method
+        if len(eng_span_dic[vocab_gen_lst[i]])>1:
+            for j in eng_span_dic[vocab_gen_lst[i]]:
+                if guess == j:
+                    correct = True
+        #elif key has only 1 value use this method
+        elif len(eng_span_dic[vocab_gen_lst[i]])==1:
+            if guess == eng_span_dic[vocab_gen_lst[i]][0]:
+                correct = True
+                
+        if correct == True:
+            correct_count +=1
+            print('\nCorrect.')
+            #if correct and theres another option print other options
+            if len(eng_span_dic[vocab_gen_lst[i]])>1:
+                print('You could also have chosen')
+                for k in eng_span_dic[vocab_gen_lst[i]]:
+                    if guess != k:
+                        print(k,'\n')
+            else:
+                #if correct but no other option print good work
+                print('Good Work.\n')                
+        #if incorrect use different method depending on length of values of key        
+        elif correct == False:
+            print('\nIncorrect, valid choice(s) were:')
+            if len(eng_span_dic[vocab_gen_lst[i]])==1:
+                print(eng_span_dic[vocab_gen_lst[i]][0],'\n')
+            elif len(eng_span_dic[vocab_gen_lst[i]])>1:
+                for i in eng_span_dic[vocab_gen_lst[i]]:
+                    print(i)
+                print()
+    final_score()
+    
+def final_score():
+    global correct_count
+    global quiz_len
+    print('You got %d out of %d, which is %.3f'% (correct_count, quiz_len, correct_count/quiz_len),end='')
+    print('%')
+    print()
+    vocab_quiz_list()
+    
+#manages function call       
+def function_manager():
+    check_directory()
+    vocab_quiz_list()
+
+    
+function_manager()
